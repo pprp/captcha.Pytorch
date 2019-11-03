@@ -25,15 +25,23 @@ def userTest(model, dataLoader):
         print("real: %s -> %s , %s" % (realLabel, decLabel, str(realLabel == decLabel)))
         if realLabel == decLabel:
             rightNum += 1
-    print("\n total %s, right %s" % (totalNum, rightNum))
+    print("\n total %s, right %s, wrong %s." % (totalNum, rightNum, totalNum-rightNum))
 
 if __name__ == '__main__':
+
+    import argparse
+    parser = argparse.ArgumentParser(description="weight path")
+    parser.add_argument('--weight_path', type=str,default="./model/resNet10.pth")
+    parser.add_argument('--test_path', type=str, default="./data/test")
+    args = parser.parse_args()
+
+
     model = ResNet(ResidualBlock)
     model.eval()
-    model.loadIfExist()
+    model.loadIfExist(args.weight_path)
     if t.cuda.is_available():
         model = model.cuda()
-    userTestDataset = Captcha("./samples/", train=True)
+    userTestDataset = Captcha(args.test_path, train=True)
     userTestDataLoader = DataLoader(userTestDataset, batch_size=1,
                                     shuffle=True, num_workers=1)
     userTest(model, userTestDataLoader)

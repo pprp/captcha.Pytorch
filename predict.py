@@ -64,13 +64,20 @@ def predict(model, dataLoader):
     f.close()
 
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description="weightpath")
+    parser.add_argument("--weight_path",type=str,default="./model/resNet149.pth")
+    parser.add_argument("--test_path", type=str, default="./test/")
+
+    args = parser.parse_args()
+
     model = ResNet(ResidualBlock)
     model.eval()
-    model.loadIfExist("./model/resNet150.pth")
+    model.loadIfExist(args.weight_path)
 
     if t.cuda.is_available():
         model = model.cuda()
-    userTestDataset = Captcha("./test/", train=True)
+    userTestDataset = Captcha(args.test_path, train=True)
     userTestDataLoader = DataLoader(userTestDataset, batch_size=1,
                                     shuffle=False, num_workers=1)
     predict(model, userTestDataLoader)
