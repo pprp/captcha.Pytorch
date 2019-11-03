@@ -4,6 +4,6 @@ from train import *
 
 if __name__ == '__main__':
     net = ResNet(ResidualBlock)
+    # net = CaptchaNet()
     net.loadIfExist()
-    # print(net.named_parameters())
     train(net)

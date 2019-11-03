@@ -61,7 +61,7 @@ class ResNet(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        x = F.avg_pool2d(x, 4)
+        x = nn.AdaptiveAvgPool2d(1)(x)
         x = x.view(-1, 512)
         y1 = self.fc1(x)
         y2 = self.fc2(x)
@@ -75,13 +75,16 @@ class ResNet(nn.Module):
         name2 = "./model/resNet_new.pth"
         t.save(self.state_dict(), name2)
 
-    def loadIfExist(self):
+    def loadIfExist(self, weight_path):
         fileList = os.listdir("./model/")
         # print(fileList)
         if "resNet_new.pth" in fileList:
             name = "./model/resNet_new.pth"
             self.load_state_dict(t.load(name))
             print("the latest model has been load")
+        else:
+            self.load_state_dict(t.load(weight_path))
+            print("load %s success!" % weight_path)
 
 
 class CaptchaNet(nn.Module):
@@ -126,10 +129,13 @@ class CaptchaNet(nn.Module):
         name2 = "./model/net_new.pth"
         t.save(self.state_dict(), name2)
 
-    def loadIfExist(self):
+    def loadIfExist(self, weight_path):
         fileList = os.listdir("./model/")
         # print(fileList)
-        if "net_new.pth" in fileList:
+        if "net_new.pth" in fileList:        
             name = "./model/net_new.pth"
             self.load_state_dict(t.load(name))
             print("the latest model has been load")
+        else:
+            self.load_state_dict(t.load(weight_path))
+            print("load %s success!" % weight_path)

@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 import tqdm
 from Visdom import *
 from torchnet import meter
+from model import *
 
 
 
@@ -17,24 +18,26 @@ def train(model):
     trainDataset = Captcha("./data/train/", train=True)
     testDataset = Captcha("./data/test/", train=False)
     trainDataLoader = DataLoader(trainDataset, batch_size=batchSize,
-                                 shuffle=True, num_workers=4)
+                                 shuffle=True, num_workers=1)
     testDataLoader = DataLoader(testDataset, batch_size=batchSize,
-                                shuffle=True, num_workers=4)
+                                shuffle=True, num_workers=1)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learningRate)
     vis = Visualizer(env = "ResCaptcha")
     loss_meter = meter.AverageValueMeter()
     for epoch in range(totalEpoch):
-        for circle, input in tqdm.tqdm(enumerate(trainDataLoader, 0)):
+        print("="*6,"epoch:",epoch,"="*6)
+        for circle, input in enumerate(trainDataLoader, 0):
             x, label = input
+            # print('-'*5, x.size(), label.size())
             if t.cuda.is_available():
                 x = x.cuda()
                 label = label.cuda()
             label = label.long()
             label1, label2, label3, label4 = label[:, 0], label[:, 1], label[:, 2], label[:, 3]
-            # print(label1,label2,label3,label4)
             optimizer.zero_grad()
             y1, y2, y3, y4 = model(x)
+            # print(label1.size(),label2.size(),label3.size(),label4.size())
             # print(y1.shape, y2.shape, y3.shape, y4.shape)
             loss1, loss2, loss3, loss4 = criterion(y1, label1), criterion(y2, label2) \
                 , criterion(y3, label3), criterion(y4, label4)
@@ -44,18 +47,18 @@ def train(model):
             avgLoss += loss.item()
             loss.backward()
             optimizer.step()
-            if circle % printCircle == 1:
-                print("after %d circle,the train loss is %.5f" %
-                      (circle, avgLoss / printCircle))
-                writeFile("after %d circle,the train loss is %.5f" %
-                          (circle, avgLoss / printCircle))
+            if circle % printCircle == 0:
+                print("step: %03d, Train loss is %.5f" % (circle, avgLoss / printCircle))
+                # writeFile("step %d , Train loss is %.5f" % (circle, avgLoss / printCircle))
                 vis.plot_many_stack({"train_loss": avgLoss})
                 avgLoss = 0
-            if circle % testCircle == 1:
-                accuracy = test(model, testDataLoader)
-                vis.plot_many_stack({"test_acc":accuracy})
-            if circle % saveCircle == 1:
-                model.save(str(epoch)+"_"+str(saveCircle))
+        if True:
+            # one epoch once
+            accuracy = test(model, testDataLoader)
+            print("epoch: %03d, accuracy: %.5f" % (epoch, accuracy))
+            vis.plot_many_stack({"test_acc":accuracy})
+        if True:
+            model.save(str(epoch))
 
 
 def test(model, testDataLoader):
@@ -78,8 +81,8 @@ def test(model, testDataLoader):
         diff = (diff != 0)
         res = diff.sum(0).item()
         rightNum += (batchSize - res)
-    print("the accuracy of test set is %s" % (str(float(rightNum) / float(totalNum))))
-    writeFile("the accuracy of test set is %s" % (str(float(rightNum) / float(totalNum))))
+    print("the accuracy of test set is %.5f" % ((float(rightNum) / float(totalNum))))
+    writeFile("the accuracy of test set is %.5fs" % ((float(rightNum) / float(totalNum))))
     return float(rightNum) / float(totalNum)
 
 
@@ -89,3 +92,9 @@ def writeFile(str):
     file.write("\n\n")
     file.flush()
     file.close()
+
+if __name__ == '__main__':
+    net = ResNet(ResidualBlock)
+    # net = CaptchaNet()
+    net.loadIfExist("./model/resNet150.pth")
+    train(net)

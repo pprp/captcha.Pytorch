@@ -66,7 +66,7 @@ def predict(model, dataLoader):
 if __name__ == '__main__':
     model = ResNet(ResidualBlock)
     model.eval()
-    model.loadIfExist()
+    model.loadIfExist("./model/resNet150.pth")
 
     if t.cuda.is_available():
         model = model.cuda()

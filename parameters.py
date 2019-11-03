@@ -5,8 +5,8 @@ testRoot = "./测试数据集"
 tensorLength = 248
 charLength = 62
 charNumber = 4
-ImageWidth = 32
-ImageHeight = 32
+ImageWidth = 120
+ImageHeight = 40
 
 # 可修改的参数
 learningRate = 1e-3
