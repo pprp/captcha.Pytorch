@@ -1,0 +1,8 @@
+
+*.pyc
+*.jpg
+*.xml
+*.iml
+.idea/Visdom.py
+*.json
+*.out
