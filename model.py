@@ -4,6 +4,15 @@ from torch import nn
 import torch.nn.functional as F
 import os
 
+def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
+    """3x3 convolution with padding"""
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
+                     padding=dilation, groups=groups, bias=False, dilation=dilation)
+
+
+def conv1x1(in_planes, out_planes, stride=1):
+    """1x1 convolution"""
+    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
 
 class ResidualBlock(nn.Module):
     def __init__(self, inchannel, outchannel, stride=1):
@@ -28,6 +37,31 @@ class ResidualBlock(nn.Module):
         out = F.relu(out)
         return out
 
+class Bottleneck(nn.Module):
+    def __init__(self, inchannel, outchannel, stride=1):
+        super(ResidualBlock, self).__init__()
+        self.bottle = nn.Sequential(
+            nn.Conv2d(inchannel, outchannel, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(outchannel, track_running_stats=True),
+            nn.Conv2d(inchannel, outchannel, kernel_size=3, stride=stride, padding=1, bias=False),
+            nn.BatchNorm2d(outchannel, track_running_stats=True),
+            nn.Conv2d(outchannel, outchannel, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(outchannel, track_running_stats=True),
+            nn.ReLU(inplace=True)
+        )
+        self.shortcut = nn.Sequential()
+        if stride != 1 or inchannel != outchannel:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(inchannel, outchannel, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(outchannel, track_running_stats=True)
+            )
+
+    def forward(self, x):
+        out = self.left(x)
+        out += self.shortcut(x)
+        out = F.relu(out)
+        return out
+
 
 class ResNet(nn.Module):
     def __init__(self, ResidualBlock, num_classes=62):
@@ -38,10 +72,14 @@ class ResNet(nn.Module):
             nn.BatchNorm2d(64, track_running_stats=True),
             nn.ReLU(),
         )
-        self.layer1 = self.make_layer(ResidualBlock, 64, 2, stride=1)
-        self.layer2 = self.make_layer(ResidualBlock, 128, 2, stride=2)
-        self.layer3 = self.make_layer(ResidualBlock, 256, 2, stride=2)
-        self.layer4 = self.make_layer(ResidualBlock, 512, 2, stride=2)
+        # https://blog.csdn.net/weixin_43624538/article/details/85049699
+        # part 1: ResidualBlock basic
+        # res18 2 2 2 2
+        # res34 3 4 6 3
+        self.layer1 = self.make_layer(ResidualBlock, 64, 3, stride=1)
+        self.layer2 = self.make_layer(ResidualBlock, 128, 4, stride=2)
+        self.layer3 = self.make_layer(ResidualBlock, 256, 6, stride=2)
+        self.layer4 = self.make_layer(ResidualBlock, 512, 3, stride=2)
         self.fc1 = nn.Linear(512, num_classes)
         self.fc2 = nn.Linear(512, num_classes)
         self.fc3 = nn.Linear(512, num_classes)
@@ -82,7 +120,7 @@ class ResNet(nn.Module):
             name = "./model/resNet_new.pth"
             self.load_state_dict(t.load(name))
             print("the latest model has been load")
-        else:
+        elif os.path.exists(weight_path):
             self.load_state_dict(t.load(weight_path))
             print("load %s success!" % weight_path)
 

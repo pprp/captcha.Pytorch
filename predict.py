@@ -28,9 +28,6 @@ class Captcha(data.Dataset):
         imgPath = self.imgsPath[index]
         # print(imgPath)
         label = imgPath.split("/")[-1]
-        # print(label)
-        
-        # print(label)
         # labelTensor = t.Tensor(StrtoLabel(label))
         data = Image.open(imgPath)
         # print(data.size)

@@ -18,15 +18,16 @@ def train(model):
     trainDataset = Captcha("./data/train/", train=True)
     testDataset = Captcha("./data/test/", train=False)
     trainDataLoader = DataLoader(trainDataset, batch_size=batchSize,
-                                 shuffle=True, num_workers=1)
+                                 shuffle=True, num_workers=4)
     testDataLoader = DataLoader(testDataset, batch_size=batchSize,
-                                shuffle=True, num_workers=1)
+                                shuffle=True, num_workers=4)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learningRate)
     vis = Visualizer(env = "ResCaptcha")
     loss_meter = meter.AverageValueMeter()
+    best_acc = -1.
     for epoch in range(totalEpoch):
-        print("="*6,"epoch:",epoch,"="*6)
+        print("="*10,"epoch:",epoch,"="*10)
         for circle, input in enumerate(trainDataLoader, 0):
             x, label = input
             # print('-'*5, x.size(), label.size())
@@ -57,8 +58,9 @@ def train(model):
             accuracy = test(model, testDataLoader)
             print("epoch: %03d, accuracy: %.5f" % (epoch, accuracy))
             vis.plot_many_stack({"test_acc":accuracy})
-        if True:
-            model.save(str(epoch))
+            if best_acc < accuracy:
+                best_acc = accuracy
+                model.save(str(epoch))
 
 
 def test(model, testDataLoader):
@@ -87,9 +89,9 @@ def test(model, testDataLoader):
 
 
 def writeFile(str):
-    file = open("result.txt", "a+")
+    file = open("result.txt", "w")
     file.write(str)
-    file.write("\n\n")
+    file.write("\n")
     file.flush()
     file.close()
 
