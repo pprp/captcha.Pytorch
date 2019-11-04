@@ -6,3 +6,4 @@
 .idea/Visdom.py
 *.json
 *.out
+*.pth

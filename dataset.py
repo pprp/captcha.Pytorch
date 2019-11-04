@@ -5,6 +5,8 @@ import numpy as np
 from torchvision import transforms as  T
 from parameters import *
 import torch as t
+# from dataAug import get_aug_pipline
+import re
 
 nums = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 lower_char = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u',
@@ -37,12 +39,44 @@ def LabeltoStr(Label):
             Str += chr(ord('A') + i - 36)
     return Str
 
+class augCaptcha(data.Dataset):
+    def __init__(self, root, train=True):
+        self.imgsPath = [os.path.join(root, img) for img in os.listdir(root)]
+        # p = get_aug_pipline()
+        self.transform = T.Compose([
+            T.Resize((ImageHeight, ImageWidth)),
+            # p.torch_transform(),
+            T.ToTensor(),
+            T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        ])
+
+    def __getitem__(self, index):
+        imgPath = self.imgsPath[index]
+        # print(imgPath)
+        img_name = os.path.basename(imgPath)
+        # print(img_name)
+        pattern = re.compile(r'\w+_original_(\d*\w*)')
+        label = pattern.search(img_name).groups()[0]
+        # print(label)
+        # label = imgPath.split("/")[-1].split(".")[0]
+        # print(label)
+        labelTensor = t.Tensor(StrtoLabel(label))
+        data = Image.open(imgPath)
+        # print(data.size)
+        data = self.transform(data)
+        # print(data.shape)
+        return data, labelTensor
+
+    def __len__(self):
+        return len(self.imgsPath)
 
 class Captcha(data.Dataset):
     def __init__(self, root, train=True):
         self.imgsPath = [os.path.join(root, img) for img in os.listdir(root)]
+        # p = get_aug_pipline()
         self.transform = T.Compose([
             T.Resize((ImageHeight, ImageWidth)),
+            # p.torch_transform(),
             T.ToTensor(),
             T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
         ])
