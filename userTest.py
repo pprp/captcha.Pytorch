@@ -6,9 +6,8 @@ from train import *
 def userTest(model, dataLoader):
     totalNum = 0
     rightNum = 0
+    badlist = []
     for circle, input in enumerate(dataLoader, 0):
-        if circle >= 200:
-            break
         totalNum += 1
         x, label = input
         if t.cuda.is_available():
@@ -25,6 +24,11 @@ def userTest(model, dataLoader):
         print("real: %s -> %s , %s" % (realLabel, decLabel, str(realLabel == decLabel)))
         if realLabel == decLabel:
             rightNum += 1
+        else:
+            badlist.append([realLabel,decLabel])
+
+    for itm in badlist:
+        print("False: ", itm[0], "=>", itm[1])
     print("\n total %s, right %s, wrong %s." % (totalNum, rightNum, totalNum-rightNum))
 
 if __name__ == '__main__':

@@ -23,8 +23,8 @@ def train(model):
                                 shuffle=True, num_workers=4)
     criterion = nn.CrossEntropyLoss()
     # RAdam
-    # optimizer = RAdam(model.parameters(), lr=learningRate, betas=(0.9, 0.999), weight_decay=5e-4)
-    optimizer = optim.Adam(model.parameters(), lr=learningRate)
+    optimizer = RAdam(model.parameters(), lr=learningRate, betas=(0.9, 0.999), weight_decay=5e-4)
+    # optimizer = optim.Adam(model.parameters(), lr=learningRate)
     vis = Visualizer(env = "ResCaptcha")
     loss_meter = meter.AverageValueMeter()
     best_acc = -1.
@@ -62,7 +62,7 @@ def train(model):
             vis.plot_many_stack({"test_acc":accuracy})
             if best_acc < accuracy:
                 best_acc = accuracy
-                model.save(str(epoch))
+                model.save(str(epoch)+"_"+str(int(accuracy*1000)))
 
 
 def test(model, testDataLoader):

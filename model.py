@@ -76,10 +76,10 @@ class ResNet(nn.Module):
         # part 1: ResidualBlock basic
         # res18 2 2 2 2
         # res34 3 4 6 3
-        self.layer1 = self.make_layer(ResidualBlock, 64, 3, stride=1)
-        self.layer2 = self.make_layer(ResidualBlock, 128, 4, stride=2)
-        self.layer3 = self.make_layer(ResidualBlock, 256, 6, stride=2)
-        self.layer4 = self.make_layer(ResidualBlock, 512, 3, stride=2)
+        self.layer1 = self.make_layer(ResidualBlock, 64, 2, stride=1)
+        self.layer2 = self.make_layer(ResidualBlock, 128, 2, stride=2)
+        self.layer3 = self.make_layer(ResidualBlock, 256, 2, stride=2)
+        self.layer4 = self.make_layer(ResidualBlock, 512, 2, stride=2)
         self.fc1 = nn.Linear(512, num_classes)
         self.fc2 = nn.Linear(512, num_classes)
         self.fc3 = nn.Linear(512, num_classes)

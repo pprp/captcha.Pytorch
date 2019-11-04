@@ -41,6 +41,7 @@ class Captcha(data.Dataset):
 def predict(model, dataLoader):
     f = open("./submission.csv","w")
     csv_writer = csv.writer(f)
+    csv_writer.writerow(["ID","label"])
 
     for circle, input in enumerate(dataLoader, 0):
         x, label = input
