@@ -8,7 +8,7 @@ import tqdm
 from Visdom import *
 from torchnet import meter
 from model import *
-
+from optimizer import RAdam,AdamW
 
 
 def train(model):
@@ -22,6 +22,8 @@ def train(model):
     testDataLoader = DataLoader(testDataset, batch_size=batchSize,
                                 shuffle=True, num_workers=4)
     criterion = nn.CrossEntropyLoss()
+    # RAdam
+    # optimizer = RAdam(model.parameters(), lr=learningRate, betas=(0.9, 0.999), weight_decay=5e-4)
     optimizer = optim.Adam(model.parameters(), lr=learningRate)
     vis = Visualizer(env = "ResCaptcha")
     loss_meter = meter.AverageValueMeter()
