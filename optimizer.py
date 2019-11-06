@@ -79,23 +79,24 @@ class RAdam(Optimizer):
 
 class AdamW(Optimizer):
 
-    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
-                 weight_decay=0, use_variance=True, warmup = 4000):
+    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8, weight_decay=0, warmup = 0):
+        if not 0.0 <= lr:
+            raise ValueError("Invalid learning rate: {}".format(lr))
+        if not 0.0 <= eps:
+            raise ValueError("Invalid epsilon value: {}".format(eps))
+        if not 0.0 <= betas[0] < 1.0:
+            raise ValueError("Invalid beta parameter at index 0: {}".format(betas[0]))
+        if not 0.0 <= betas[1] < 1.0:
+            raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]))
+        
         defaults = dict(lr=lr, betas=betas, eps=eps,
-                        weight_decay=weight_decay, use_variance=True, warmup = warmup)
-        print('======== Warmup: {} ========='.format(warmup))
+                        weight_decay=weight_decay, warmup = warmup)
         super(AdamW, self).__init__(params, defaults)
 
     def __setstate__(self, state):
         super(AdamW, self).__setstate__(state)
 
     def step(self, closure=None):
-        global iter_idx
-        iter_idx += 1
-        grad_list = list()
-        mom_list = list()
-        mom_2rd_list = list()
-
         loss = None
         if closure is not None:
             loss = closure()
@@ -134,11 +135,12 @@ class AdamW(Optimizer):
                 bias_correction2 = 1 - beta2 ** state['step']
                 
                 if group['warmup'] > state['step']:
-                    scheduled_lr = 1e-6 + state['step'] * (group['lr'] - 1e-6) / group['warmup']
+                    scheduled_lr = 1e-8 + state['step'] * group['lr'] / group['warmup']
                 else:
                     scheduled_lr = group['lr']
 
                 step_size = scheduled_lr * math.sqrt(bias_correction2) / bias_correction1
+                
                 if group['weight_decay'] != 0:
                     p_data_fp32.add_(-group['weight_decay'] * scheduled_lr, p_data_fp32)
 

@@ -32,7 +32,7 @@ def train(model):
     loss_meter = meter.AverageValueMeter()
     best_acc = -1.
     for epoch in range(totalEpoch):
-        print("="*10,"epoch:",epoch,"="*10)
+        print("="*13,"epoch:",epoch,"="*13)
         for circle, input in enumerate(trainDataLoader, 0):
             x, label = input
             # print('-'*5, x.size(), label.size())
@@ -58,7 +58,8 @@ def train(model):
                 # writeFile("step %d , Train loss is %.5f" % (circle, avgLoss / printCircle))
                 vis.plot_many_stack({"train_loss": avgLoss})
                 avgLoss = 0
-        print("="*10,"aug epoch","="*10)
+                
+        print("="*13,"aug epoch","="*13)
         for circle, input in enumerate(augTrainDataLoader, 0):
             x, label = input
             # print('-'*5, x.size(), label.size())
@@ -87,7 +88,7 @@ def train(model):
         if True:
             # one epoch once
             accuracy = test(model, testDataLoader)
-            print("epoch: %03d, accuracy: %.5f" % (epoch, accuracy))
+            print("epoch: %03d, accuracy: %.3f" % (epoch, accuracy))
             vis.plot_many_stack({"test_acc":accuracy})
             if best_acc < accuracy:
                 best_acc = accuracy
@@ -106,17 +107,19 @@ def test(model, testDataLoader):
             x = x.cuda()
             label = label.cuda()
         y1, y2, y3, y4 = model(x)
-        y1, y2, y3, y4 = y1.topk(1, dim=1)[1].view(batchSize, 1), \
-                         y2.topk(1, dim=1)[1].view(batchSize, 1), \
-                         y3.topk(1, dim=1)[1].view(batchSize, 1), \
-                         y4.topk(1, dim=1)[1].view(batchSize, 1)
+        # print(y1.size(),y2.size(),y3.size(), y4.size())
+        small_bs = x.size()[0]# get the first channel
+        y1, y2, y3, y4 = y1.topk(1, dim=1)[1].view(small_bs, 1), \
+                         y2.topk(1, dim=1)[1].view(small_bs, 1), \
+                         y3.topk(1, dim=1)[1].view(small_bs, 1), \
+                         y4.topk(1, dim=1)[1].view(small_bs, 1)
         y = t.cat((y1, y2, y3, y4), dim=1)
         diff = (y != label)
         diff = diff.sum(1)
         diff = (diff != 0)
         res = diff.sum(0).item()
-        rightNum += (batchSize - res)
-    print("the accuracy of test set is %.5f" % ((float(rightNum) / float(totalNum))))
+        rightNum += (small_bs - res)
+    # print("the accuracy of test set is %.5f" % ((float(rightNum) / float(totalNum))))
     writeFile("the accuracy of test set is %.5fs" % ((float(rightNum) / float(totalNum))))
     return float(rightNum) / float(totalNum)
 
