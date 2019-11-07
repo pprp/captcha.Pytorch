@@ -134,5 +134,5 @@ def writeFile(str):
 if __name__ == '__main__':
     net = ResNet(ResidualBlock)
     # net = CaptchaNet()
-    net.loadIfExist("./model/resNet150.pth")
+    net.loadIfExist("./model/resNet_new.pth")
     train(net)

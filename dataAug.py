@@ -41,9 +41,9 @@ def get_rotate_pipline(path, num):
 
 if __name__ == "__main__":
     times = 2
-    path = "./data/train"#r"C:\Users\pprp\Desktop\验证码\augTest"
+    path = r"C:\Users\pprp\Desktop\验证码\dataset5\train"
     num = len(os.listdir(path)) * times
-    p = get_skew_tilt_pipline(path, num)
+    p = get_distortion_pipline(path, num)
     # p = get_rotate_pipline(path, num)
     # p.process()
     # augTrainDataset = augCaptcha("./data/auged_train", train=True)
