@@ -9,7 +9,7 @@ ImageWidth = 120
 ImageHeight = 40
 
 # 可修改的参数
-learningRate = 1e-3
+learningRate = 3.5e-4
 totalEpoch = 200
 batchSize = 128
 printCircle = 10

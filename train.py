@@ -9,7 +9,9 @@ from Visdom import *
 from torchnet import meter
 from model import *
 from optimizer import RAdam,AdamW
+import os
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 def train(model):
     avgLoss = 0.0
