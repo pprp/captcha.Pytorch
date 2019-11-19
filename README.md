@@ -207,5 +207,4 @@ class ResNet(nn.Module):
 
 - python main.py 可以对模型进行训练
 - python userTest.py 可以对userTest文件下下的图片进行辨认
-
 - python generate_captcha.py 可以生成验证码
