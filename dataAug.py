@@ -11,8 +11,6 @@ import re
 from dataset import *
 from torch.utils.data import DataLoader
 
-
-
 def get_distortion_pipline(path, num):
     p = Augmentor.Pipeline(path)
     p.zoom(probability=0.5, min_factor=1.05, max_factor=1.05)

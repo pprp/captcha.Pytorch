@@ -3,33 +3,67 @@ import torch as t
 from torch import nn
 import torch.nn.functional as F
 import os
+from torchvision import models
+from torch.nn import init
+import torch
+
+def weights_init_classifier(m):
+    classname = m.__class__.__name__
+    if classname.find('Linear') != -1:
+        init.normal_(m.weight.data, std=0.001)
+        init.constant_(m.bias.data, 0.0)
+
+
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
     """3x3 convolution with padding"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
-                     padding=dilation, groups=groups, bias=False, dilation=dilation)
+    return nn.Conv2d(in_planes,
+                     out_planes,
+                     kernel_size=3,
+                     stride=stride,
+                     padding=dilation,
+                     groups=groups,
+                     bias=False,
+                     dilation=dilation)
 
 
 def conv1x1(in_planes, out_planes, stride=1):
     """1x1 convolution"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+    return nn.Conv2d(in_planes,
+                     out_planes,
+                     kernel_size=1,
+                     stride=stride,
+                     bias=False)
+
 
 class ResidualBlock(nn.Module):
     def __init__(self, inchannel, outchannel, stride=1):
         super(ResidualBlock, self).__init__()
         self.left = nn.Sequential(
-            nn.Conv2d(inchannel, outchannel, kernel_size=3, stride=stride, padding=1, bias=False),
+            nn.Conv2d(inchannel,
+                      outchannel,
+                      kernel_size=3,
+                      stride=stride,
+                      padding=1,
+                      bias=False),
             nn.BatchNorm2d(outchannel, track_running_stats=True),
             nn.ReLU(inplace=True),
-            nn.Conv2d(outchannel, outchannel, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.BatchNorm2d(outchannel, track_running_stats=True)
-        )
+            nn.Conv2d(outchannel,
+                      outchannel,
+                      kernel_size=3,
+                      stride=1,
+                      padding=1,
+                      bias=False),
+            nn.BatchNorm2d(outchannel, track_running_stats=True))
         self.shortcut = nn.Sequential()
         if stride != 1 or inchannel != outchannel:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(inchannel, outchannel, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(outchannel, track_running_stats=True)
-            )
+                nn.Conv2d(inchannel,
+                          outchannel,
+                          kernel_size=1,
+                          stride=stride,
+                          bias=False),
+                nn.BatchNorm2d(outchannel, track_running_stats=True))
 
     def forward(self, x):
         out = self.left(x)
@@ -37,24 +71,42 @@ class ResidualBlock(nn.Module):
         out = F.relu(out)
         return out
 
+
 class Bottleneck(nn.Module):
     def __init__(self, inchannel, outchannel, stride=1):
         super(ResidualBlock, self).__init__()
         self.bottle = nn.Sequential(
-            nn.Conv2d(inchannel, outchannel, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.Conv2d(inchannel,
+                      outchannel,
+                      kernel_size=1,
+                      stride=1,
+                      padding=0,
+                      bias=False),
             nn.BatchNorm2d(outchannel, track_running_stats=True),
-            nn.Conv2d(inchannel, outchannel, kernel_size=3, stride=stride, padding=1, bias=False),
+            nn.Conv2d(inchannel,
+                      outchannel,
+                      kernel_size=3,
+                      stride=stride,
+                      padding=1,
+                      bias=False),
             nn.BatchNorm2d(outchannel, track_running_stats=True),
-            nn.Conv2d(outchannel, outchannel, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.Conv2d(outchannel,
+                      outchannel,
+                      kernel_size=1,
+                      stride=1,
+                      padding=0,
+                      bias=False),
             nn.BatchNorm2d(outchannel, track_running_stats=True),
-            nn.ReLU(inplace=True)
-        )
+            nn.ReLU(inplace=True))
         self.shortcut = nn.Sequential()
         if stride != 1 or inchannel != outchannel:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(inchannel, outchannel, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(outchannel, track_running_stats=True)
-            )
+                nn.Conv2d(inchannel,
+                          outchannel,
+                          kernel_size=1,
+                          stride=stride,
+                          bias=False),
+                nn.BatchNorm2d(outchannel, track_running_stats=True))
 
     def forward(self, x):
         out = self.left(x)
@@ -170,7 +222,103 @@ class CaptchaNet(nn.Module):
     def loadIfExist(self, weight_path):
         fileList = os.listdir("./model/")
         # print(fileList)
-        if "net_new.pth" in fileList:        
+        if "net_new.pth" in fileList:
+            name = "./model/net_new.pth"
+            self.load_state_dict(t.load(name))
+            print("the latest model has been load")
+        else:
+            self.load_state_dict(t.load(weight_path))
+            print("load %s success!" % weight_path)
+
+
+class ClassBlock(nn.Module):
+    def __init__(self,
+                 input_dim,
+                 class_num,
+                 dropout=False,
+                 relu=False,
+                 num_bottleneck=512):
+        super(ClassBlock, self).__init__()
+        add_block = []
+        #add_block += [nn.Linear(input_dim, num_bottleneck)]
+        num_bottleneck = input_dim
+        add_block += [nn.BatchNorm1d(num_bottleneck)]
+        if relu:
+            add_block += [nn.LeakyReLU(0.1)]
+        if dropout:
+            add_block += [nn.Dropout(p=0.5)]
+        add_block = nn.Sequential(*add_block)
+        add_block.apply(weights_init_kaiming)
+
+        classifier = []
+        classifier += [nn.Linear(num_bottleneck, class_num)]
+        classifier = nn.Sequential(*classifier)
+        classifier.apply(weights_init_classifier)
+
+        self.add_block = add_block
+        self.classifier = classifier
+
+    def forward(self, x):
+        f = self.add_block(x)
+        f_norm = f.norm(p=2, dim=1, keepdim=True) + 1e-8
+        f = f.div(f_norm)
+        x = self.classifier(f)
+        return x
+
+
+def weights_init_kaiming(m):
+    classname = m.__class__.__name__
+    # print(classname)
+    if classname.find('Conv') != -1:
+        init.kaiming_normal(m.weight.data, a=0, mode='fan_in')
+    elif classname.find('Linear') != -1:
+        init.kaiming_normal(m.weight.data, a=0, mode='fan_out')
+        init.constant(m.bias.data, 0.0)
+    elif classname.find('BatchNorm1d') != -1:
+        init.normal_(m.weight.data, 1.0, 0.02)
+        init.constant_(m.bias.data, 0.0)
+
+
+class RES50(nn.Module):
+    def __init__(self, class_num=62):
+        super(RES50, self).__init__()
+        model_ft = models.resnet18(pretrained=True)
+        model_ft.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.model = model_ft
+        self.classifier = ClassBlock(512, 1024)
+        self.fc1 = nn.Linear(1024, class_num)
+        self.fc2 = nn.Linear(1024, class_num)
+        self.fc3 = nn.Linear(1024, class_num)
+        self.fc4 = nn.Linear(1024, class_num)
+
+    def forward(self, x):
+        x = self.model.conv1(x)
+        x = self.model.bn1(x)
+        x = self.model.relu(x)
+        x = self.model.maxpool(x)
+        x = self.model.layer1(x)
+        x = self.model.layer2(x)
+        x = self.model.layer3(x)
+        x = self.model.layer4(x)
+        x = self.model.avgpool(x)
+        x = torch.squeeze(x)
+        x = self.classifier(x)
+        x1 = self.fc1(x)
+        x2 = self.fc2(x)
+        x3 = self.fc3(x)
+        x4 = self.fc4(x)
+        return x1, x2, x3, x4
+
+    def save(self, circle):
+        name = "./model/net" + str(circle) + ".pth"
+        t.save(self.state_dict(), name)
+        name2 = "./model/net_new.pth"
+        t.save(self.state_dict(), name2)
+
+    def loadIfExist(self, weight_path):
+        fileList = os.listdir("./model/")
+        # print(fileList)
+        if "net_new.pth" in fileList:
             name = "./model/net_new.pth"
             self.load_state_dict(t.load(name))
             print("the latest model has been load")
