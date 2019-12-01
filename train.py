@@ -1,15 +1,27 @@
-from parameters import *
+from config.parameters import *
 import torch as t
 from torch import optim
 from torch import nn
-from dataset import *
+from lib.dataset import *
 from torch.utils.data import DataLoader
 import tqdm
-from Visdom import *
+from tools.Visdom import *
 from torchnet import meter
-from model import *
-from optimizer import RAdam,AdamW
+from model.model import *
+from lib.optimizer import RAdam,AdamW
 import os
+
+
+augTrainDataset = augCaptcha("./data/auged_train", train=True)
+trainDataset = Captcha("./data/train/", train=True)
+testDataset = Captcha("./data/test/", train=False)
+augTrainDataLoader = DataLoader(augTrainDataset, batch_size=batchSize,
+                                shuffle=True, num_workers=4)
+trainDataLoader = DataLoader(trainDataset, batch_size=batchSize,
+                                shuffle=True, num_workers=4)
+testDataLoader = DataLoader(testDataset, batch_size=batchSize,
+                            shuffle=True, num_workers=4)
+
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
@@ -17,19 +29,11 @@ def train(model):
     avgLoss = 0.0
     if t.cuda.is_available():
         model = model.cuda()
-    augTrainDataset = augCaptcha("./data/auged_train", train=True)
-    trainDataset = Captcha("./data/train/", train=True)
-    testDataset = Captcha("./data/test/", train=False)
-    augTrainDataLoader = DataLoader(augTrainDataset, batch_size=batchSize,
-                                    shuffle=True, num_workers=4)
-    trainDataLoader = DataLoader(trainDataset, batch_size=batchSize,
-                                 shuffle=True, num_workers=4)
-    testDataLoader = DataLoader(testDataset, batch_size=batchSize,
-                                shuffle=True, num_workers=4)
+
     criterion = nn.CrossEntropyLoss()
     # RAdam
-    # optimizer = RAdam(model.parameters(), lr=learningRate, betas=(0.9, 0.999), weight_decay=6.5e-4)
-    optimizer = optim.Adam(model.parameters(), lr=learningRate)
+    optimizer = RAdam(model.parameters(), lr=learningRate, betas=(0.9, 0.999), weight_decay=6.5e-4)
+    #optimizer = optim.Adam(model.parameters(), lr=learningRate)
     vis = Visualizer(env = "ResCaptcha")
     loss_meter = meter.AverageValueMeter()
     best_acc = -1.
@@ -99,18 +103,14 @@ def train(model):
 
 
 def test(model, testDataLoader):
-    totalNum = testNum * batchSize
+    totalNum = len(os.listdir('./data/test'))
     rightNum = 0
-    for circle, input in enumerate(testDataLoader, 0):
-        if circle >= testNum:
-            break
-        x, label = input
+    for circle, (x, label) in enumerate(testDataLoader, 0):
         label = label.long()
         if t.cuda.is_available():
             x = x.cuda()
             label = label.cuda()
         y1, y2, y3, y4 = model(x)
-        # print(y1.size(),y2.size(),y3.size(), y4.size())
         small_bs = x.size()[0]# get the first channel
         y1, y2, y3, y4 = y1.topk(1, dim=1)[1].view(small_bs, 1), \
                          y2.topk(1, dim=1)[1].view(small_bs, 1), \
@@ -122,8 +122,8 @@ def test(model, testDataLoader):
         diff = (diff != 0)
         res = diff.sum(0).item()
         rightNum += (small_bs - res)
-    # print("the accuracy of test set is %.5f" % ((float(rightNum) / float(totalNum))))
-    writeFile("the accuracy of test set is %.5fs" % ((float(rightNum) / float(totalNum))))
+    print(rightNum, totalNum)
+    print("test acc: %s" % (float(rightNum) / float(totalNum)))
     return float(rightNum) / float(totalNum)
 
 
@@ -135,7 +135,8 @@ def writeFile(str):
     file.close()
 
 if __name__ == '__main__':
-    net = RES50()
+    # net = RES50()
     # net = CaptchaNet()
-    net.loadIfExist("./model/net99_914.pth")
+    net = ResNet(ResidualBlock)
+    net.loadIfExist("./model/net99_738.pth")
     train(net)
