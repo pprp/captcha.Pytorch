@@ -1,1 +1,0 @@
-the accuracy of test set is 0.92057s
