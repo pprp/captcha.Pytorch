@@ -2,6 +2,8 @@
 
 一个基于pytorch实现的端到端的验证码识别系统
 
+[TOC]
+
 ### <center>1. Background</center>
 
 基于<https://github.com/dee1024/pytorch-captcha-recognition>进行改进，原版中数据集采用的captcha库自动生成的图片，可以随意制定生成数量，并且相对而言生成的图片比较简单。
@@ -118,18 +120,42 @@ ResNet18+Dropout(0.5)+RAdam+DataAugmentation+lr(3e-4) = 98.4%测试集准确率�
 
 ### <center>6. Procedure</center>
 
+调参过程记录：null代表未记录
 
+| Name       | item1    | item2                  | item3   | item4 | item5     | 测试:线上       |
+| ---------- | -------- | ---------------------- | ------- | ----- | --------- | --------------- |
+| baseline0  | ResNet18 | lr=1e-3                | 4:1划分 | Adam  |           | 88%:84%         |
+| baseline1  | ResNet34 | lr=1e-3                | 4:1划分 | Adam  |           | 90%:84%         |
+| baseline2  | ResNet18 | lr=1e-3                | 4:1划分 | RAdam |           | null:**90%**    |
+| baseline3  | ResNet18 | lr=3e-4                | 4:1划分 | RAdam |           | 未收敛          |
+| baseline4  | ResNet18 | lr=1e-1                | 4:1划分 | RAdam |           | 96.4%:87%       |
+| baseline5  | ResNet18 | lr=1e-1                | 4:1划分 | RAdam | aug0      | 98%:**93%**     |
+| baseline6  | ResNet18 | lr=1e-1                | 9:1划分 | RAdam | aug1      | 60%:null        |
+| baseline7  | ResNet18 | lr=1e-3                | 4:1划分 | RAdam | aug2      | null:94%        |
+| baseline8  | ResNet18 | lr=1e-3                | 4:1划分 | AdamW | aug2      | 98.4%:92.56%    |
+| baseline9  | ResNet18 | lr=1e-3                | 4:1划分 | RAdam | aug3      | null:93.52%     |
+| baseline10 | ResNet18 | lr=1e-3                | 4:1划分 | RAdam | aug4      | null:94.16%     |
+| baseline11 | ResNet18 | lr=1e-3                | 9:1划分 | RAdam | aug5      | 60%:null        |
+| baseline12 | ResNet18 | lr=3.5e-4              | 4:1划分 | RAdam | aug2      | null:**94.72%** |
+| baseline13 | ResNet18 | lr=3.5e-4 decay:6e-4   | 4:1划分 | RAdam | aug2      | null:**95.16%** |
+| baseline14 | ResNet18 | lr=3.5e-4 decay:7e-4   | 4:1划分 | RAdam | aug2      | bad             |
+| baseline15 | ResNet18 | lr=3.5e-5 decay:6.5e-4 | 4:1划分 | RAdam | aug2      | null:95%        |
+| baseline16 | ResNet18 | lr=3.5e-5 decay:6.5e-4 | 4:1划分 | RAdam | drop(0.5) | null:97%        |
 
+后期由于错过了提交时间，只能进行测试集上的测试，主要方案有以下：
 
+- learning rate scheduler尝试：CosineAnnealingLR, ReduceLROnPlateau,StepLR,MultiStepLR
+- 更改backbone: senet, densenet
+- 在res18基础上添加：attention机制，dual pooling, ibn模块，bnneck等
+- 尝试center loss，收敛很慢，但是效果应该不错
 
+还未尝试的方案：
 
-
-
+- label smooth 
+- 多模型ensemble
 
 ---
 
-联系我：QQ: 1115957667 
-
-​		CSDN:<https://blog.csdn.net/DD_PP_JJ>
-
-​		博客园:<https://www.cnblogs.com/pprp>
+- QQ: 1115957667 
+- CSDN:<https://blog.csdn.net/DD_PP_JJ>
+- 博客园:<https://www.cnblogs.com/pprp>
