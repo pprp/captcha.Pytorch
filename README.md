@@ -1,210 +1,135 @@
-# pytorch实现验证码识别
+## <center>Captcha.Pytorch</center>
 
-### 前言
+一个基于pytorch实现的端到端的验证码识别系统
 
-这几天主要在熟悉pyTorch，俗话说：“人生苦短，我用pyTorch”，在从TensorFlow转到pytorch之后，除了“爽”以外，我实在找不到其他形容词，简洁的语法，明了的封装，加上大大降低的debug难度，我从此入了pyTorch的坑。
+### <center>1. Background</center>
 
-为了熟悉pyTorch，我最近做了几个小项目，今天分享给大家的是一个非常有用的入门级项目——验证码识别。
+基于<https://github.com/dee1024/pytorch-captcha-recognition>进行改进，原版中数据集采用的captcha库自动生成的图片，可以随意制定生成数量，并且相对而言生成的图片比较简单。
 
-
-
-### 前期准备
-
-- core i7 的笔记本
-- 一个 GTX 1080ti 的显卡
-- 装上pytorch的cpu和GPU版本
+本次项目是全国高校计算机能力挑战赛中的人工智能赛道里的验证码识别，该比赛需要识别26（大写）+26（小写）+数字（10）= 62个字符，随机组成的四位验证码图片。训练集仅有5000张，并且识别的难度系数较大，人眼有时候也很容易识别出错。
 
 
 
-### 项目目的
+### <center>2. Environment</center>
 
-使用pytorch训练一个深度学习的模型来实现验证码的自动识别，其中验证码由python包cpatcha生成，其样子如下：
+- 显存：4G+
 
-![](./image/2019-2-24-1.jpg)
+- Ubuntu16.04
 
-可以看出，该验证码识别难度较大，扭曲较为严重，如果能在该数据集上实现较高的识别率，那么其他简单的数字+字母的验证码不在话下。
+- numpy
 
+- pandas
 
+- torch==1.3.1
 
-### 数据生成
+- torchnet==0.0.4
 
-我使用captcha生成了训练集和测试集，其中训练集包含大约200万张图片，测试集包含一万张图片，生成代码如下：
+- torchvision==0.2.0
 
-```python
-def get_string():
-    string = ""
-    for i in range(4):
-        select = rd.randint(1, 3)
-        if select == 1:
-            index = rd.randint(0, 9)
-            string += nums[index]
-        elif select == 2:
-            index = rd.randint(0, 25)
-            string += lower_char[index]
-        else:
-            index = rd.randint(0, 25)
-            string += upper_char[index]
-    return string
+- tqdm
 
+- visdom
 
-def get_captcha(num, path):
-    font_sizes = [x for x in range(40, 45)]
-    for i in range(num):
-        print(i)
-        imc = ImageCaptcha(get_width(), get_height(), font_sizes=font_sizes)
-        name = get_string()
-        image = imc.generate_image(name)
-        image.save(path + name + ".jpg")
+> 可通过pip install -r requirements.txt进行环境的安装
 
+### <center>3. Dataset</center>
 
-if __name__ == '__main__':
-    get_captcha(900000, "../data/captcha/train/")
-```
+![1575527368225](1575527368225.png)
 
+比赛提供的数据集如图所示，120$\times$40的像素的图片，然后标签是由图片名称提供的。训练集测试集划分：80%的数据用于训练集，20%的数据用于测试集。
 
+- 训练图片个数为：3988
 
-### 网络定义
+- 测试图片个数为：1000
 
-网络前部是卷积与池化层，网络中部是全连接层，网络最后为四个全连接层，得到四个输出，分别对应验证码中的四个数字，其定义如下：
+训练的数据还是明显不够的，考虑使用数据增强，通过查找github上很多做数据增强的库，最终选择了Augmentor库作为图像增强的库。
+
+安装方式：`pip install Augmentor`
+
+API: <https://augmentor.readthedocs.io/en/master/index.html>
+
+由于验证码与普通的分类图片有一定区别，所以选择的增强方式有一定局限，经过几轮实验，最终选取了distortion类的方法作为具体增强方法，输入为训练所用的图片，输出设置为原来图片个数的2倍，具体代码见dataAug.py, 核心代码如下：
 
 ```python
-class CaptchaNet(nn.Module):
-    def __init__(self):
-        super(CaptchaNet, self).__init__()
-        self.conv1 = nn.Conv2d(3, 5, 5)
-        self.conv2 = nn.Conv2d(5, 10, 5)
-        self.conv3 = nn.Conv2d(10, 16, 6)
-        self.fc1 = nn.Linear(4 * 12 * 16, 512)
-        self.fc2 = nn.Linear(512, 256)
-        self.fc3 = nn.Linear(256, 128)
-        # 这是四个用于输出四个字符的线性层
-        self.fc41 = nn.Linear(128, 62)
-        self.fc42 = nn.Linear(128, 62)
-        self.fc43 = nn.Linear(128, 62)
-        self.fc44 = nn.Linear(128, 62)
-
-    def forward(self, x):
-        # 输入为3*128*64，经过第一层为5*62*30
-        x = F.max_pool2d(F.relu(self.conv1(x)), (2, 2))
-        # 输出形状10*29*13
-        x = F.max_pool2d(F.relu(self.conv2(x)), (2, 2))
-        # 输出形状16*12*4
-        x = F.max_pool2d(F.relu(self.conv3(x)), (2, 2))
-        # print(x.size())
-        x = x.view(-1, 768)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.fc2(x)
-        x = F.relu(x)
-        x = self.fc3(x)
-        x = F.relu(x)
-        x1 = self.fc41(x)
-        x2 = self.fc42(x)
-        x3 = self.fc43(x)
-        x4 = self.fc44(x)
-        return x1, x2, x3, x4
+def get_distortion_pipline(path, num):
+    p = Augmentor.Pipeline(path)
+    p.zoom(probability=0.5, min_factor=1.05, max_factor=1.05)
+    p.random_distortion(probability=1, grid_width=6, grid_height=2, magnitude=3)
+    p.sample(num)
+    return p
 ```
 
-后来使用ResNet进行改进模型，其网络结构如下
+将得到的图片重命名为auged_train文件夹，最终数据集组成如下：
 
-```python
-class ResidualBlock(nn.Module):
-    def __init__(self, inchannel, outchannel, stride=1):
-        super(ResidualBlock, self).__init__()
-        self.left = nn.Sequential(
-            nn.Conv2d(inchannel, outchannel, kernel_size=3, stride=stride, padding=1, bias=False),
-            nn.BatchNorm2d(outchannel, track_running_stats=True),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(outchannel, outchannel, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.BatchNorm2d(outchannel, track_running_stats=True)
-        )
-        self.shortcut = nn.Sequential()
-        if stride != 1 or inchannel != outchannel:
-            self.shortcut = nn.Sequential(
-                nn.Conv2d(inchannel, outchannel, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(outchannel, track_running_stats=True)
-            )
-
-    def forward(self, x):
-        out = self.left(x)
-        out += self.shortcut(x)
-        out = F.relu(out)
-        return out
-
-
-class ResNet(nn.Module):
-    def __init__(self, ResidualBlock, num_classes=62):
-        super(ResNet, self).__init__()
-        self.inchannel = 64
-        self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.BatchNorm2d(64, track_running_stats=True),
-            nn.ReLU(),
-        )
-        self.layer1 = self.make_layer(ResidualBlock, 64, 2, stride=1)
-        self.layer2 = self.make_layer(ResidualBlock, 128, 2, stride=2)
-        self.layer3 = self.make_layer(ResidualBlock, 256, 2, stride=2)
-        self.layer4 = self.make_layer(ResidualBlock, 512, 2, stride=2)
-        self.fc1 = nn.Linear(512, num_classes)
-        self.fc2 = nn.Linear(512, num_classes)
-        self.fc3 = nn.Linear(512, num_classes)
-        self.fc4 = nn.Linear(512, num_classes)
-
-    def make_layer(self, block, channels, num_blocks, stride):
-        strides = [stride] + [1] * (num_blocks - 1)  # strides=[1,1]
-        layers = []
-        for stride in strides:
-            layers.append(block(self.inchannel, channels, stride))
-            self.inchannel = channels
-        return nn.Sequential(*layers)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
-        x = F.avg_pool2d(x, 4)
-        x = x.view(-1, 512)
-        y1 = self.fc1(x)
-        y2 = self.fc2(x)
-        y3 = self.fc3(x)
-        y4 = self.fc4(x)
-        return y1, y2, y3, y4
+```
+root 
+	- data
+		- train:3988张
+		- test:1000张
+		- auged_train:7976张
 ```
 
-在ResNet下，正确率可以超过90%。
+### <center>4. Structure</center>
+
+```
+root 
+	- config
+		- parameters.py 主要包括超参数，最重要的是learning rate
+	- lib
+		- center_loss.py 将center loss引入，用于训练
+		- dataset.py 包装Dataset，针对train文件夹和auged_train文件夹内容各自写了一个处理类
+		- generate_captcha.py 生成简单的数据集，在没有官方数据集的情况下
+		- optimizer.py RAdam, AdamW, label smooth等新的optimizer
+		- scheduler.py 新增了warmup机制
+	- model
+		- BNNeck.py 基于resnet18使用了bnnect结构，来自罗浩大佬行人检测中的trick
+		- CaptchaNet.py 手工构建的一个简单网络，原有库提供的
+		- dense.py 更改backbone，使用dense121作为backbone，其他也可以更改
+		- dualpooling.py 在resnet18基础上添加了dual pooling，增加了信息
+		- IBN.py 使用ibn模块，以resnet18为基础
+		- model.py resnet18，添加dropout
+		- res18.py 引入了attention机制和dual pooling
+		- senet.py 将senet作为backbone
+	- result
+		- submission.csv 结果保存
+	- utils
+		- cutoff.py 数据增强方法，不适合验证码，可以用在普通图片
+		- dataAug.py 使用Agumentor进行数据增强
+		- Visdom.py 使用visdom记录log，进行可视化
+- predict.py 引入了多模型预测，然后分析结果
+- run.py 与predict类似，不过是单模型的预测
+- test.py 规定测试模型权重，待测试图片路径，对测试集进行测试
+- train.py 模型的训练，每个epoch先训练所有的train,然后训练所有的auged_train图片
+```
+
+### <center>5. Result</center>
+
+最好结果：
+
+ResNet18+Dropout(0.5)+RAdam+DataAugmentation+lr(3e-4) = 98.4%测试集准确率，线上A榜：97%
+
+![1575530185666](1575530185666.png)
 
 
 
-### 训练结果
+模型分析：分析四个模型，python predict.py 观察预测出错的结果，评判模型好坏，最终选择了0号模型。
 
-在20万张图片训练情况下，可以达到35%的准确率。
+![1575530264099](1575530264099.png)
 
-在200万张图片训练情况下，可以达到55%——60%的准确率。
-
-如果继续加深网络层数，以及扩展训练集数目，根据估算，在1000万训练集情况下，可以达到90%以上的准确率。
-
-![](./image/2019-2-24-2.jpg)
+### <center>6. Procedure</center>
 
 
 
-### 测试
-
-手写一个100张图片的数据集进行测试，可以发现如下规律：
-
-![](./image/2019-2-24-3.jpg)
-
-- 确实可以达到近50%的准确率，对于这种较为难以辨认的验证码而言，效果已经不错
-- 错误很多都是较为相近的字母或者数字，例如
-    - s -> 5
-    - o -> 0
-    - E -> B
 
 
 
-### 使用方法
 
-- python main.py 可以对模型进行训练
-- python userTest.py 可以对userTest文件下下的图片进行辨认
-- python generate_captcha.py 可以生成验证码
+
+
+---
+
+联系我：QQ: 1115957667 
+
+​		CSDN:<https://blog.csdn.net/DD_PP_JJ>
+
+​		博客园:<https://www.cnblogs.com/pprp>
