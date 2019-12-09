@@ -23,15 +23,15 @@ from lib.scheduler import GradualWarmupScheduler
 torch.manual_seed(42)
 # import adabound
 
-# augTrainDataset = augCaptcha("./data/auged_train", train=True)
-# trainDataset = Captcha("./data/train/", train=True)
-# testDataset = Captcha("./data/test/", train=False)
-# augTrainDataLoader = DataLoader(augTrainDataset, batch_size=batchSize,
-#                                 shuffle=True, num_workers=4)
-# trainDataLoader = DataLoader(trainDataset, batch_size=batchSize,
-#                              shuffle=True, num_workers=4)
-# testDataLoader = DataLoader(testDataset, batch_size=1,
-#                             shuffle=True, num_workers=1)
+augTrainDataset = augCaptcha("./data/auged_train", train=True)
+trainDataset = Captcha("./data/train/", train=True)
+testDataset = Captcha("./data/test/", train=False)
+augTrainDataLoader = DataLoader(augTrainDataset, batch_size=batchSize,
+                                shuffle=True, num_workers=4)
+trainDataLoader = DataLoader(trainDataset, batch_size=batchSize,
+                             shuffle=True, num_workers=4)
+testDataLoader = DataLoader(testDataset, batch_size=1,
+                            shuffle=True, num_workers=1)
 
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
