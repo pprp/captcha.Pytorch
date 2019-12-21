@@ -72,6 +72,19 @@ root
 ```
 
 > 如果需要数据集请联系我，联系方式在最后
+>
+> 链接：https://pan.baidu.com/s/13BmN7Na4ESTPAgyfBAHMxA 
+> 提取码：v4nk
+
+数据集结构的组织,从网盘下载数据以后，按照以下文件夹格式进行组织：
+
+```
+- data
+	- train
+	- auged_train
+```
+
+然后就可以训练了。
 
 ### <center>4. Structure</center>
 
