@@ -2,7 +2,7 @@
 
 一个基于pytorch实现的端到端的验证码识别系统
 
-[TOC]
+
 
 ### <center>1. Background</center>
 
