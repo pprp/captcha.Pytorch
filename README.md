@@ -81,6 +81,7 @@ root
 ```
 - data
 	- train
+	- test
 	- auged_train
 ```
 
