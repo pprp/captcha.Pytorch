@@ -9,3 +9,6 @@ totalEpoch = 600
 batchSize = 64
 printCircle = 10
 
+trainPath = "./data/train"
+augedTrainPath = "./data/auged_train"
+testPath = "./data/test"

@@ -21,18 +21,23 @@ from lib.center_loss import CenterLoss
 from model.IBN import res_ibn
 from lib.scheduler import GradualWarmupScheduler
 torch.manual_seed(42)
-# import adabound
+import adabound
 
-augTrainDataset = augCaptcha("./data/auged_train", train=True)
-trainDataset = Captcha("./data/train/", train=True)
-testDataset = Captcha("./data/test/", train=False)
-augTrainDataLoader = DataLoader(augTrainDataset, batch_size=batchSize,
-                                shuffle=True, num_workers=4)
-trainDataLoader = DataLoader(trainDataset, batch_size=batchSize,
-                             shuffle=True, num_workers=4)
-testDataLoader = DataLoader(testDataset, batch_size=1,
-                            shuffle=True, num_workers=1)
-
+augTrainDataset = augCaptcha(augedTrainPath, train=True)
+trainDataset = Captcha(trainPath, train=True)
+testDataset = Captcha(testPath, train=False)
+augTrainDataLoader = DataLoader(augTrainDataset,
+                                batch_size=batchSize,
+                                shuffle=True,
+                                num_workers=4)
+trainDataLoader = DataLoader(trainDataset,
+                             batch_size=batchSize,
+                             shuffle=True,
+                             num_workers=4)
+testDataLoader = DataLoader(testDataset,
+                            batch_size=1,
+                            shuffle=True,
+                            num_workers=1)
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
@@ -44,7 +49,7 @@ def train_with_center(model):
     model.train()
     if torch.cuda.is_available():
         model = model.cuda()
-        
+
     criterion_xent = nn.CrossEntropyLoss()
     criterion_cent = CenterLoss(num_classes=62, feat_dim=62)
     optimizer_centloss = optim.SGD(criterion_cent.parameters(), lr=0.005)
@@ -81,15 +86,23 @@ def train_with_center(model):
                 x = x.cuda()
                 label = label.cuda()
             label = label.long()
-            label1, label2, label3, label4 = label[:, 0], label[:, 1], label[:, 2], label[:, 3]
+            label1, label2, label3, label4 = label[:,
+                                                   0], label[:,
+                                                             1], label[:,
+                                                                       2], label[:,
+                                                                                 3]
             y1, y2, y3, y4 = model(x)
             ####################################################################
-            loss_x1, loss_x2 = criterion_xent(y1, label1), criterion_xent(y2, label2)
-            loss_x3, loss_x4 = criterion_xent(y3, label3), criterion_xent(y4, label4)
+            loss_x1, loss_x2 = criterion_xent(y1, label1), criterion_xent(
+                y2, label2)
+            loss_x3, loss_x4 = criterion_xent(y3, label3), criterion_xent(
+                y4, label4)
             loss_x = loss_x1 + loss_x2 + loss_x3 + loss_x4
             ####################################################################
-            loss_c1, loss_c2 = criterion_cent(y1, label1), criterion_cent(y2, label2)
-            loss_c3, loss_c4 = criterion_cent(y3, label3), criterion_cent(y4, label4)
+            loss_c1, loss_c2 = criterion_cent(y1, label1), criterion_cent(
+                y2, label2)
+            loss_c3, loss_c4 = criterion_cent(y3, label3), criterion_cent(
+                y4, label4)
             loss_c = loss_c1 + loss_c2 + loss_c3 + loss_c4
             ####################################################################
             loss = ratio_c * loss_c + ratio_x * loss_x
@@ -108,17 +121,19 @@ def train_with_center(model):
             optimizer_centloss.step()
             ####################################################################
             if circle % printCircle == 0:
-                print("epoch:%02d step: %03d train loss:%.5f model loss:%.2f center loss:%.2f" %
-                      (epoch, circle, loss_meter.value()[0], 
-                      loss_x_meter.value()[0], loss_c_meter.value()[0]))
+                print(
+                    "epoch:%02d step: %03d train loss:%.5f model loss:%.2f center loss:%.2f"
+                    % (epoch, circle, loss_meter.value()[0],
+                       loss_x_meter.value()[0], loss_c_meter.value()[0]))
                 # writeFile("step %d , Train loss is %.5f" % (circle, avgLoss / printCircle))
-                vis.plot_many_stack({"train_loss": loss_meter.value()[0],
-                                     "model loss": loss_x_meter.value()[0],
-                                     "center loss": loss_c_meter.value()[0]})
+                vis.plot_many_stack({
+                    "train_loss": loss_meter.value()[0],
+                    "model loss": loss_x_meter.value()[0],
+                    "center loss": loss_c_meter.value()[0]
+                })
                 loss_meter.reset()
                 loss_c_meter.reset()
                 loss_x_meter.reset()
-
 
         for circle, input in enumerate(augTrainDataLoader, record_circle):
             x, label = input
@@ -130,16 +145,16 @@ def train_with_center(model):
             label3, label4 = label[:, 2], label[:, 3]
             y1, y2, y3, y4 = model(x)
             ####################################################################
-            loss_x1, loss_x2 = criterion_xent(
-                y1, label1), criterion_xent(y2, label2)
-            loss_x3, loss_x4 = criterion_xent(
-                y3, label3), criterion_xent(y4, label4)
+            loss_x1, loss_x2 = criterion_xent(y1, label1), criterion_xent(
+                y2, label2)
+            loss_x3, loss_x4 = criterion_xent(y3, label3), criterion_xent(
+                y4, label4)
             loss_x = loss_x1 + loss_x2 + loss_x3 + loss_x4
             ####################################################################
-            loss_c1, loss_c2 = criterion_cent(
-                y1, label1), criterion_cent(y2, label2)
-            loss_c3, loss_c4 = criterion_cent(
-                y3, label3), criterion_cent(y4, label4)
+            loss_c1, loss_c2 = criterion_cent(y1, label1), criterion_cent(
+                y2, label2)
+            loss_c3, loss_c4 = criterion_cent(y3, label3), criterion_cent(
+                y4, label4)
             loss_c = loss_c1 + loss_c2 + loss_c3 + loss_c4
             ####################################################################
             loss = ratio_c * loss_c + ratio_x * loss_x
@@ -159,12 +174,15 @@ def train_with_center(model):
             optimizer_centloss.step()
             ####################################################################
             if circle % printCircle == 0:
-                print("epoch:%02d step: %03d train loss:%.5f model loss:%.2f center loss:%.2f" %
-                    (epoch, circle, loss_meter.value()[0],
-                    loss_x_meter.value()[0], loss_c_meter.value()[0]))
-                vis.plot_many_stack({"train_loss": loss_meter.value()[0],
-                                     "model loss": loss_x_meter.value()[0],
-                                     "center loss": loss_c_meter.value()[0]})
+                print(
+                    "epoch:%02d step: %03d train loss:%.5f model loss:%.2f center loss:%.2f"
+                    % (epoch, circle, loss_meter.value()[0],
+                       loss_x_meter.value()[0], loss_c_meter.value()[0]))
+                vis.plot_many_stack({
+                    "train_loss": loss_meter.value()[0],
+                    "model loss": loss_x_meter.value()[0],
+                    "center loss": loss_c_meter.value()[0]
+                })
                 loss_meter.reset()
                 loss_x_meter.reset()
                 loss_c_meter.reset()
@@ -178,25 +196,32 @@ def train_with_center(model):
             if best_acc < accuracy:
                 best_acc = accuracy
             if best_acc < accuracy or best_acc - accuracy < 0.01:
-                model.save(str(epoch)+"_"+str(int(accuracy*1000)))
+                model.save(str(epoch) + "_" + str(int(accuracy * 1000)))
 
 
 def train_original(model):
-    vis = Visualizer(env="bnneck_warmup")
+    vis = Visualizer(env="old one")
     model.train()
     avgLoss = 0.0
     if torch.cuda.is_available():
         model = model.cuda()
     criterion = nn.CrossEntropyLoss()
-    optimizer = adabound.AdaBound(model.parameters(), lr=learningRate, final_lr=1e-5, gamma=1e-4)
+    #optimizer = adabound.AdaBound(model.parameters(), lr=learningRate, final_lr=1e-5, gamma=1e-4)
     # RAdam
-    # optimizer = RAdam(model.parameters(), lr=learningRate,
-    #                         betas=(0.9, 0.999), weight_decay=6.5e-4)
+    optimizer = RAdam(model.parameters(),
+                      lr=learningRate,
+                      betas=(0.9, 0.999),
+                      weight_decay=6.5e-4)
     # optimizer = optim.Adam(model.parameters(), lr=learningRate)
     # scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=5, eta_min=1e-6) # Cosine需要的初始lr比较大1e-2,1e-3都可以
     # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=4)
-    scheduler_after = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
-    scheduler = GradualWarmupScheduler(optimizer, 8, 10, after_scheduler=scheduler_after)
+    scheduler_after = optim.lr_scheduler.StepLR(optimizer,
+                                                step_size=20,
+                                                gamma=0.5)
+    scheduler = GradualWarmupScheduler(optimizer,
+                                       8,
+                                       10,
+                                       after_scheduler=scheduler_after)
     # milestone_list = [10 * k for k in range(1, totalEpoch//10)]
     # scheduler = optim.lr_scheduler.MultiStepLR(  # lr 3e-3 best
     #     optimizer, milestones=milestone_list, gamma=0.5)
@@ -270,7 +295,8 @@ def train_original(model):
             if best_acc < accuracy:
                 best_acc = accuracy
             if best_acc < accuracy or best_acc - accuracy < 0.01:
-                model.save(str(epoch)+"_"+str(int(accuracy*1000)))
+                model.save(str(epoch) + "_" + str(int(accuracy * 1000)))
+
 
 def test(model, testDataLoader):
     model.eval()
@@ -311,12 +337,12 @@ def test(model, testDataLoader):
 if __name__ == '__main__':
     # net = RES50()
     # net = CaptchaNet()
-    # net = ResNet(ResidualBlock)
+    net = ResNet(ResidualBlock)
     # net = dense121()
     # net = senet()
     # net = res18()
     # net = DualResNet(ResidualBlock)
-    net = bnneck()
+    # net = bnneck()
     # net = res_ibn() # ibn block do not improve
     # net.load_model("./weights/senet_new.pth")
     # net.load_model("./model/net99_738.pth")
