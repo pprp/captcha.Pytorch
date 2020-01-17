@@ -6,7 +6,7 @@ ImageHeight = 40
 
 learningRate = 3e-4  # 3e-4 #3.5e-4  # 1e-2
 totalEpoch = 600
-batchSize = 64
+batchSize = 4
 printCircle = 10
 
 trainPath = "./data/train"
