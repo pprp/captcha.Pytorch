@@ -192,7 +192,6 @@ ResNet18+Dropout(0.5)+RAdam+DataAugmentation+lr(3e-4) = 98.4%测试集准确率�
 
 ---
 
-- QQ: 1115957667 
 
 - CSDN:<https://blog.csdn.net/DD_PP_JJ>
 
