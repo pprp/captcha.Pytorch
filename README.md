@@ -1,7 +1,4 @@
-## <center>Captcha.Pytorch</center>
-
-一个基于pytorch实现的端到端的验证码识别系统
-
+## 计算机挑战赛 2019 验证码识别竞赛 一等奖方案
 
 
 ### <center>1. Background</center>
